@@ -272,7 +272,10 @@ export const removeMember = async (
       targetUserId,
       todayIn(house.timezone),
     );
-    // Feature cleanup on leave (shopping claims) goes here.
+    await tx.shoppingItem.updateMany({
+      where: { houseId, claimedById: targetUserId, status: 'NEEDED' },
+      data: { claimedById: null },
+    });
 
     await tx.houseMember.delete({ where: { userId: targetUserId } });
 
