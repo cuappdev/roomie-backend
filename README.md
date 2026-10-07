@@ -23,7 +23,8 @@ Differences from Eatery: Prisma 7 instead of 6 (the client no longer needs a nat
 npm install
 cp .env.example .env                               # AUTH_DEV_BYPASS=true is already set for local dev
 docker compose -f docker-compose.dev.yml up -d     # local Postgres on :5432
-npx prisma migrate dev                             # creates tables + generates the client
+npx prisma generate                                # builds the Prisma client into src/generated (rerun after schema changes)
+npx prisma migrate dev                             # creates the tables
 npm run dev                                        # http://localhost:8000
 ```
 
@@ -58,7 +59,7 @@ npm test
 
 ### Changing the schema
 
-Edit `prisma/schema.prisma`, then `npx prisma migrate dev --name what_changed`. Commit the generated folder in `prisma/migrations/`. The Docker image runs `prisma migrate deploy` on start.
+Edit `prisma/schema.prisma`, then `npx prisma migrate dev --name what_changed` and `npx prisma generate` (Prisma 7 no longer generates on migrate). Commit the generated folder in `prisma/migrations/`. The Docker image runs `prisma migrate deploy` on start.
 
 ## How login works
 

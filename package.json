@@ -11,10 +11,11 @@
     "test": "vitest run",
     "lint": "eslint '{src,test}/**/*.ts' --fix",
     "format": "prettier --write '{src,test,prisma}/**/*.ts'",
-    "db:migrate": "prisma migrate dev",
+    "db:migrate": "prisma migrate dev && prisma generate",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
-    "studio": "prisma studio"
+    "studio": "prisma studio",
+    "generate": "prisma generate"
   },
   "license": "MIT",
   "dependencies": {
