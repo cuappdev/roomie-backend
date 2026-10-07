@@ -27,6 +27,10 @@ npx prisma migrate dev                             # creates tables + generates 
 npm run dev                                        # http://localhost:8000
 ```
 
+**Endpoint reference for the iOS/Android devs: [docs/API.md](docs/API.md).**
+
+Demo data from the designs (The Linden Loft): `npm run db:seed`.
+
 Try it without any Firebase setup:
 
 ```bash
