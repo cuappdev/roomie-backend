@@ -1,0 +1,232 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+// The connection URL lives in prisma.config.ts (Prisma 7).
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────────── Users ─────────────────────────────
+
+enum Presence {
+  HOME
+  AWAY
+}
+
+model User {
+  id          Int      @id @default(autoincrement())
+  firebaseUid String   @unique
+  netid       String   @unique
+  email       String   @unique
+  name        String
+  major       String?
+  avatarUrl   String?
+  presence    Presence @default(HOME)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  membership      HouseMember?
+  invitesSent     HouseInvite[]   @relation("InvitedBy")
+  housesCreated   House[]         @relation("HouseCreatedBy")
+  choreRotations  ChoreRotation[]
+  choreAssigned   ChoreAssignment[] @relation("ChoreAssignee")
+  choreCompleted  ChoreAssignment[] @relation("ChoreCompletedBy")
+  choresCreated   Chore[]         @relation("ChoreCreatedBy")
+  shoppingAdded   ShoppingItem[]  @relation("ShoppingAddedBy")
+  shoppingClaimed ShoppingItem[]  @relation("ShoppingClaimedBy")
+  shoppingBought  ShoppingItem[]  @relation("ShoppingBoughtBy")
+}
+
+// ───────────────────────────── Houses ─────────────────────────────
+
+enum LivingType {
+  ON_CAMPUS
+  OFF_CAMPUS
+}
+
+enum HouseFeature {
+  BILLS
+  CHORES
+  SHOPPING
+  CALENDAR
+  STORAGE
+  MOODBOARD
+}
+
+enum MemberRole {
+  OWNER
+  MEMBER
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  REVOKED
+}
+
+model House {
+  id          Int            @id @default(autoincrement())
+  name        String
+  color       String         @default("#7A4E2D")
+  inviteCode  String         @unique
+  livingType  LivingType     @default(OFF_CAMPUS)
+  address     String?
+  unit        String?
+  leaseEndsOn DateTime?      @db.Date
+  timezone    String         @default("America/New_York")
+  features    HouseFeature[] @default([BILLS, CHORES, SHOPPING, CALENDAR, STORAGE, MOODBOARD])
+  createdById Int
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  createdBy     User           @relation("HouseCreatedBy", fields: [createdById], references: [id])
+  members       HouseMember[]
+  invites       HouseInvite[]
+  chores        Chore[]
+  shoppingItems ShoppingItem[]
+}
+
+/// One house per user for the MVP (userId is unique). Drop the unique to allow several.
+model HouseMember {
+  id       Int        @id @default(autoincrement())
+  houseId  Int
+  userId   Int        @unique
+  role     MemberRole @default(MEMBER)
+  joinedAt DateTime   @default(now())
+
+  house House @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([houseId])
+}
+
+/// "Add your roommates' NetIDs". Invited people may not have signed up yet, so we key on NetID.
+model HouseInvite {
+  id          Int          @id @default(autoincrement())
+  houseId     Int
+  netid       String
+  invitedById Int
+  status      InviteStatus @default(PENDING)
+  createdAt   DateTime     @default(now())
+  respondedAt DateTime?
+
+  house     House @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  invitedBy User  @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@unique([houseId, netid])
+  @@index([netid, status])
+}
+
+// ───────────────────────────── Chores ─────────────────────────────
+
+enum ChoreFrequency {
+  DAILY
+  EVERY_OTHER_DAY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+model Chore {
+  id           Int            @id @default(autoincrement())
+  houseId      Int
+  title        String
+  frequency    ChoreFrequency
+  /// First due date of the current schedule. Occurrences are computed from this + frequency.
+  startsOn       DateTime       @db.Date
+  /// Occurrence number of startsOn. Bumped when the schedule changes so old numbers never collide.
+  occurrenceBase Int            @default(0)
+  /// Occurrence number at which rotation position 0 takes its turn.
+  rotationAnchor Int            @default(0)
+  allowSwaps   Boolean        @default(true)
+  /// Remind the assignee the day before at this local hour (0-23). Null = no reminder.
+  reminderHour Int?           @default(18)
+  createdById  Int
+  archivedAt   DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  house       House             @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  createdBy   User              @relation("ChoreCreatedBy", fields: [createdById], references: [id])
+  rotation    ChoreRotation[]
+  assignments ChoreAssignment[]
+
+  @@index([houseId])
+}
+
+/// Ordered list of who takes turns ("Rotate between · drag to reorder").
+model ChoreRotation {
+  id       Int @id @default(autoincrement())
+  choreId  Int
+  userId   Int
+  position Int
+
+  chore Chore @relation(fields: [choreId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([choreId, userId])
+  @@unique([choreId, position])
+}
+
+/// One occurrence of a chore. Created lazily from the rotation when a date range is read,
+/// then stored so completions and swaps stick.
+model ChoreAssignment {
+  id            Int       @id @default(autoincrement())
+  choreId       Int
+  occurrence    Int
+  dueOn         DateTime  @db.Date
+  assigneeId    Int
+  completedAt   DateTime?
+  completedById Int?
+
+  chore       Chore @relation(fields: [choreId], references: [id], onDelete: Cascade)
+  assignee    User  @relation("ChoreAssignee", fields: [assigneeId], references: [id], onDelete: Cascade)
+  completedBy User? @relation("ChoreCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
+
+  @@unique([choreId, occurrence])
+  @@index([assigneeId, dueOn])
+}
+
+// ───────────────────────────── Shopping ─────────────────────────────
+
+enum ShoppingCategory {
+  GROCERIES
+  HOUSEHOLD
+  OTHER
+}
+
+enum ShoppingStatus {
+  NEEDED
+  BOUGHT
+}
+
+model ShoppingItem {
+  id          Int              @id @default(autoincrement())
+  houseId     Int
+  name        String
+  category    ShoppingCategory @default(GROCERIES)
+  status      ShoppingStatus   @default(NEEDED)
+  addedById   Int
+  /// "I'll get it" / "on it"
+  claimedById Int?
+  boughtById  Int?
+  boughtAt    DateTime?
+  /// Stored in cents to avoid floating point errors.
+  priceCents  Int?
+  /// Set once the item has been turned into a bill (bills come later).
+  billId      Int?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  house     House @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  addedBy   User  @relation("ShoppingAddedBy", fields: [addedById], references: [id], onDelete: Cascade)
+  claimedBy User? @relation("ShoppingClaimedBy", fields: [claimedById], references: [id], onDelete: SetNull)
+  boughtBy  User? @relation("ShoppingBoughtBy", fields: [boughtById], references: [id], onDelete: SetNull)
+
+  @@index([houseId, status])
+}
