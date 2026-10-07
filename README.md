@@ -38,6 +38,14 @@ curl -X POST localhost:8000/auth/login -H 'Authorization: Bearer dev:lk452'
 curl localhost:8000/users/me -H 'Authorization: Bearer dev:lk452'
 ```
 
+### Postman
+
+Import `docs/roomie.postman_collection.json` (Postman → **Import** → pick the file). With the server running, hit **Run collection** to go through the whole flow: sign up two people, make a house, invite and accept, create a chore and tick it off, use the shopping list, and leave. Or send the requests one by one from top to bottom; each request saves the IDs that later ones need.
+
+- No Firebase needed: requests use the dev login `Bearer dev:{{netid}}`. Each full run picks new NetIDs, so you can run it again and again.
+- To look around the demo house from `npm run db:seed`, set the collection variables `netid` = `lk452`, `keepNetids` = `true` and `houseId` = `1`, then send individual requests.
+- Point `baseUrl` at the dev server once it's deployed.
+
 ### Tests
 
 Tests use a separate `roomie_test` database and wipe it before every test.
