@@ -4,6 +4,7 @@ import express from 'express';
 import type { Request, Response } from 'express';
 
 import authRouter from './auth/authRouter.js';
+import houseRouter, { inviteRouter } from './houses/houseRouter.js';
 import { requireAuth } from './middleware/authentication.js';
 import { globalErrorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/logger.js';
@@ -44,7 +45,8 @@ export const createApp = () => {
   // Signed in
   router.use(requireAuth);
   router.use('/users', userRouter);
-  // Feature routers (houses, chores, shopping) are mounted here.
+  router.use('/houses', houseRouter);
+  router.use('/invites', inviteRouter);
 
   app.use(router);
 
