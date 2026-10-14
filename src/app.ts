@@ -3,14 +3,10 @@ import helmet from 'helmet';
 import express from 'express';
 import type { Request, Response } from 'express';
 
-import authRouter from './auth/authRouter.js';
-import houseRouter, { inviteRouter } from './houses/houseRouter.js';
-import { requireAuth } from './middleware/authentication.js';
 import { globalErrorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/logger.js';
 import { ipRateLimiter } from './middleware/rateLimit.js';
 import { prisma } from './prisma.js';
-import userRouter from './users/userRouter.js';
 import { NotFoundError } from './utils/AppError.js';
 
 export const createApp = () => {
@@ -39,14 +35,8 @@ export const createApp = () => {
     }
   });
 
-  // Public
-  router.use('/auth', authRouter);
-
-  // Signed in
-  router.use(requireAuth);
-  router.use('/users', userRouter);
-  router.use('/houses', houseRouter);
-  router.use('/invites', inviteRouter);
+  // Feature routers (auth, users, houses, chores, shopping) get mounted here.
+  // They live on the mvp-features branch.
 
   app.use(router);
 

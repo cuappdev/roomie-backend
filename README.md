@@ -4,6 +4,8 @@ REST API for **Roomie**, Cornell AppDev's roommate management app (houses, chore
 
 It follows the layout of AppDev's newest backend, [eatery-blue-backend](https://github.com/cuappdev/eatery-blue-backend), so anyone who has worked there will feel at home.
 
+> **Right now `main` only serves `GET /health`.** Login, profile, houses, chores and the shopping list are built and tested on the `mvp-features` branch. Bring them back with `git revert <the "Strip main back to /health" commit>`, or copy single features over with `git checkout mvp-features -- src/<feature>`.
+
 ## Stack
 
 | | |
@@ -21,31 +23,22 @@ Differences from Eatery: Prisma 7 instead of 6 (the client no longer needs a nat
 
 ```bash
 npm install
-cp .env.example .env                               # AUTH_DEV_BYPASS=true is already set for local dev
+cp .env.example .env
 docker compose -f docker-compose.dev.yml up -d     # local Postgres on :5432
 npx prisma generate                                # builds the Prisma client into src/generated (rerun after schema changes)
 npx prisma migrate dev                             # creates the tables
 npm run dev                                        # http://localhost:8000
 ```
 
-**Endpoint reference for the iOS/Android devs: [docs/API.md](docs/API.md).**
-
-Demo data from the designs (The Linden Loft): `npm run db:seed`.
-
-Try it without any Firebase setup:
+Check it's running:
 
 ```bash
-curl -X POST localhost:8000/auth/login -H 'Authorization: Bearer dev:lk452'
-curl localhost:8000/users/me -H 'Authorization: Bearer dev:lk452'
+curl localhost:8000/health        # {"status":"healthy","database":"connected",...}
 ```
 
 ### Postman
 
-Import `docs/roomie.postman_collection.json` (Postman → **Import** → pick the file). With the server running, hit **Run collection** to go through the whole flow: sign up two people, make a house, invite and accept, create a chore and tick it off, use the shopping list, and leave. Or send the requests one by one from top to bottom; each request saves the IDs that later ones need.
-
-- No Firebase needed: requests use the dev login `Bearer dev:{{netid}}`. Each full run picks new NetIDs, so you can run it again and again.
-- To look around the demo house from `npm run db:seed`, set the collection variables `netid` = `lk452`, `keepNetids` = `true` and `houseId` = `1`, then send individual requests.
-- Point `baseUrl` at the dev server once it's deployed.
+Import `docs/roomie.postman_collection.json` (Postman → **Import** → pick the file) and send **Health check**. Point `baseUrl` at the dev server once it's deployed.
 
 ### Tests
 
@@ -61,7 +54,7 @@ npm test
 
 Edit `prisma/schema.prisma`, then `npx prisma migrate dev --name what_changed` and `npx prisma generate` (Prisma 7 no longer generates on migrate). Commit the generated folder in `prisma/migrations/`. The Docker image runs `prisma migrate deploy` on start.
 
-## How login works
+## How login will work
 
 ```
 iOS / Android                                   Roomie API
@@ -99,16 +92,13 @@ src/
   app.ts                 Express app: middleware + routers (exported for tests)
   server.ts              starts the HTTP server
   prisma.ts              Prisma client
-  firebase.ts            firebase-admin, initialized on first use
-  auth/                  POST /auth/login, token verification
-  users/                 GET/PATCH /users/me
-  middleware/            requireAuth, requireHouseMember, validateRequest, errors, logging, rate limit
-  utils/                 AppError (from Eatery), dates, shared Prisma selects
+  middleware/            validateRequest, errors, logging, rate limit
+  utils/                 AppError (from Eatery)
   <feature>/             one folder per feature: Router → Controller → Service, plus <feature>.schema.ts (Zod)
 prisma/
   schema.prisma          every table
   migrations/
-test/                    integration tests (one file per feature)
+test/                    integration tests (one file per feature; just /health for now)
 ```
 
 ### Conventions
