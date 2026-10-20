@@ -8,7 +8,7 @@ Tech stack:
 2. PostgreSQL (Prisma 7)
 3. Firebase Auth (Google sign-in, Cornell accounts only)
 
-> So far: `GET /health`, and login and profile. Houses, chores and the shopping list live on the `mvp-features` branch.
+> So far: `GET /health`, login and profile, and houses (create, invite by NetID, join by code, leave). Chores and the shopping list live on the `mvp-features` branch.
 
 ## Local testing without Firebase
 

@@ -2,7 +2,7 @@
   "info": {
     "name": "Roomie API (local)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Roomie API so far: health, login and profile. Start the server (`npm run dev`, with AUTH_DEV_BYPASS=true) and click **Run collection**, or send the requests top to bottom.\n\nAuth uses the dev login: `Bearer dev:{{netid}}`. Requests marked as the roommate use `dev:{{roommateNetid}}`. Each full run picks new NetIDs."
+    "description": "Every Roomie MVP endpoint. Start the server (`npm run dev`) and click **Run collection** to go through the whole flow, or send requests one by one top to bottom (later requests reuse IDs saved by earlier ones).\n\nAuth uses the dev bypass: `Bearer dev:{{netid}}`. Requests marked as the roommate use `dev:{{roommateNetid}}`.\n\nTo poke at the seeded demo house (`npm run db:seed`), set `netid` to `lk452` and `keepNetids` to `true`, then use `houseId` 1."
   },
   "auth": {
     "type": "bearer",
@@ -37,6 +37,22 @@
     },
     {
       "key": "roommateId",
+      "value": ""
+    },
+    {
+      "key": "houseId",
+      "value": "1"
+    },
+    {
+      "key": "inviteCode",
+      "value": ""
+    },
+    {
+      "key": "inviteId",
+      "value": ""
+    },
+    {
+      "key": "extraInviteId",
       "value": ""
     }
   ],
@@ -231,6 +247,430 @@
                   "value": "dev:{{roommateNetid}}",
                   "type": "string"
                 }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 \u00b7 Houses",
+      "item": [
+        {
+          "name": "Create house (+ invite roommate)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "",
+                  "const { house } = pm.response.json();",
+                  "pm.collectionVariables.set('houseId', house.id);",
+                  "pm.collectionVariables.set('inviteCode', house.inviteCode);",
+                  "pm.test(\"roommate invite is pending\", () => pm.expect(house.pendingInvites).to.have.lengthOf(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/houses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"The Linden Loft\",\n  \"color\": \"#8B5A34\",\n  \"livingType\": \"OFF_CAMPUS\",\n  \"address\": \"112 Linden Ave\",\n  \"unit\": \"Apt 3B\",\n  \"leaseEndsOn\": \"2027-05-31\",\n  \"inviteNetids\": [\n    \"{{roommateNetid}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Get house",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update house settings",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"features\": [\n    \"CHORES\",\n    \"SHOPPING\",\n    \"BILLS\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Invite more NetIDs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('extraInviteId', pm.response.json().house.pendingInvites.find(i => i.netid === 'zz123').id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/invites",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "invites"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"netids\": [\n    \"zz123\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Revoke an invite",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/invites/{{extraInviteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "invites",
+                "{{extraInviteId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Roommate sees pending invite",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const invites = pm.response.json().pendingInvites;",
+                  "pm.test(\"has one invite\", () => pm.expect(invites).to.have.lengthOf(1));",
+                  "pm.collectionVariables.set('inviteId', invites[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "dev:{{roommateNetid}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Roommate accepts invite",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"now 2 members\", () => pm.expect(pm.response.json().house.members).to.have.lengthOf(2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/invites/{{inviteId}}/accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "invites",
+                "{{inviteId}}",
+                "accept"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "dev:{{roommateNetid}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Join by invite code (example: fails, you're already in a house)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/houses/join",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "join"
+              ]
+            },
+            "description": "Someone without a house sends this with the code shown on the house setup screen. Codes are case-insensitive.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"inviteCode\": \"{{inviteCode}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "New invite code (owner only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/invite-code",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "invite-code"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 \u00b7 Leaving",
+      "item": [
+        {
+          "name": "Roommate leaves house",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/members/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "members",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "dev:{{roommateNetid}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Owner leaves (house is deleted)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/members/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "members",
+                "me"
               ]
             }
           }
