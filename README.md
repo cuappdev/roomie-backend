@@ -1,114 +1,98 @@
-# Roomie Backend
+# roomie-backend
 
-REST API for **Roomie**, Cornell AppDev's roommate management app (houses, chores, shopping list; bills, calendar, moodboard and storage later).
+An open-sourced backend for Roomie, an app for managing life with your roommates: chores, a shared shopping list, bills and more. Made by [Cornell AppDev](https://www.cornellappdev.com).
 
-It follows the layout of AppDev's newest backend, [eatery-blue-backend](https://github.com/cuappdev/eatery-blue-backend), so anyone who has worked there will feel at home.
+Tech stack:
 
-> **Right now `main` only serves `GET /health`.** Login, profile, houses, chores and the shopping list are built and tested on the `mvp-features` branch. Bring them back with `git revert <the "Strip main back to /health" commit>`, or copy single features over with `git checkout mvp-features -- src/<feature>`.
+1. TypeScript/Node.js (Express 5)
+2. PostgreSQL (Prisma 7)
+3. Firebase Auth (Google sign-in, Cornell accounts only)
 
-## Stack
+> `main` currently serves `GET /health` only. Login, profile, houses, chores and the shopping list live on the `mvp-features` branch.
 
-| | |
-|---|---|
-| Runtime | Node 22, TypeScript, Express 5 |
-| Database | PostgreSQL 16 via Prisma 7 (`@prisma/adapter-pg`) |
-| Validation | Zod 4 |
-| Auth | Firebase Auth (Google sign-in) verified with `firebase-admin`; **@cornell.edu only** |
-| Tests | Vitest + Supertest against a real Postgres |
-| Deploy | Docker image → Docker Hub → SSH + docker compose (same as Eatery) |
+## Installation
 
-Differences from Eatery: Prisma 7 instead of 6 (the client no longer needs a native engine), and auth uses Google sign-in instead of a device UUID, because Roomie needs to know *who* you are to put you in a house.
+To run this project, you need [Node.js](https://nodejs.org/en/download/) 22+ and [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or a local PostgreSQL install).
 
-## Getting started
+Clone the project with
+
+```bash
+git clone https://github.com/cuappdev/roomie-backend.git
+```
+
+After cloning the project, `cd` into the new directory and install dependencies with
 
 ```bash
 npm install
+```
+
+## Setting up the database
+
+Start a local Postgres database with
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
+
+This creates a database called `roomie` with user `roomie` and password `roomie` on port 5432. If you installed Postgres yourself, create the same user and database instead:
+
+```sql
+CREATE ROLE roomie LOGIN SUPERUSER PASSWORD 'roomie';
+CREATE DATABASE roomie OWNER roomie;
+```
+
+Then generate the Prisma client and create the tables:
+
+```bash
+npx prisma generate
+npx prisma migrate dev
+```
+
+To look at the data, run `npx prisma studio`.
+
+Whenever you change `prisma/schema.prisma`, run `npx prisma migrate dev --name <what_changed>` followed by `npx prisma generate`, and commit the new folder in `prisma/migrations/`.
+
+## Environment variables
+
+Copy the template and fill in the values:
+
+```bash
 cp .env.example .env
-docker compose -f docker-compose.dev.yml up -d     # local Postgres on :5432
-npx prisma generate                                # builds the Prisma client into src/generated (rerun after schema changes)
-npx prisma migrate dev                             # creates the tables
-npm run dev                                        # http://localhost:8000
 ```
 
-Check it's running:
+| Variable | Description |
+| --- | --- |
+| `DATABASE_URL` | Postgres connection string. The default matches the Docker database above. |
+| `PORT` | Port the server listens on (default `8000`). |
+| `FIREBASE_SERVICE_ACCOUNT_PATH` | Path to the Firebase service account key. Ask in the `#roomie-backend` channel for `firebase-service-account.json` and put it in the root directory. |
+
+## Running the app
 
 ```bash
-curl localhost:8000/health        # {"status":"healthy","database":"connected",...}
+npm run dev
 ```
 
-### Postman
+Then check that it's up at `http://localhost:8000/health`. You can also import `docs/roomie.postman_collection.json` into Postman.
 
-Import `docs/roomie.postman_collection.json` (Postman → **Import** → pick the file) and send **Health check**. Point `baseUrl` at the dev server once it's deployed.
+## Running tests
 
-### Tests
-
-Tests use a separate `roomie_test` database and wipe it before every test.
+Tests run against a separate `roomie_test` database. Set it up once:
 
 ```bash
-createdb -h localhost -U roomie roomie_test   # once (or: docker compose exec db createdb -U roomie roomie_test)
+docker compose -f docker-compose.dev.yml exec db createdb -U roomie roomie_test
 DATABASE_URL=postgresql://roomie:roomie@localhost:5432/roomie_test npx prisma migrate deploy
+```
+
+Then run
+
+```bash
 npm test
 ```
 
-### Changing the schema
+## Deployment
 
-Edit `prisma/schema.prisma`, then `npx prisma migrate dev --name what_changed` and `npx prisma generate` (Prisma 7 no longer generates on migrate). Commit the generated folder in `prisma/migrations/`. The Docker image runs `prisma migrate deploy` on start.
+Pushing to `main` builds a Docker image and deploys it to the dev server through GitHub Actions, the same setup as Eatery. Pushing to `release` deploys to prod. Both workflows only run when started by hand until the server and secrets are set up.
 
-## How login will work
+## Configuration (optional)
 
-```
-iOS / Android                                   Roomie API
-─────────────                                   ──────────
-Google sign-in through Firebase Auth
-(hint hd=cornell.edu in the Google picker)
-        │ Firebase ID token
-        ▼
-POST /auth/login  Authorization: Bearer <id token>
-                                                verify token with firebase-admin
-                                                reject non-@cornell.edu emails
-                                                create user on first login (netid = email prefix)
-        ◀──────────── { isNewUser, user, house, pendingInvites }
-
-every other request: Authorization: Bearer <id token>
-(the Firebase SDK refreshes it automatically; just ask it for the current token)
-```
-
-The app picks the first screen from the login response: no house and pending invites → "join this house?"; no house → onboarding; a house → Home.
-
-**Never send Cornell passwords to this server.** The sign-in design shows a NetID + password form; that needs to become a "Continue with Cornell Google" button.
-
-`AUTH_DEV_BYPASS=true` lets you send `Bearer dev:<netid>` instead of a real token. It is ignored when `NODE_ENV=production`.
-
-### Firebase setup (once, by whoever owns the project)
-
-1. Create a Firebase project and enable **Google** as a sign-in provider.
-2. Add the iOS and Android apps in Firebase (they need `GoogleService-Info.plist` / `google-services.json`).
-3. Project settings → Service accounts → *Generate new private key*. Save it as `firebase-service-account.json` in the repo root (it's gitignored), or put the JSON into `FIREBASE_SERVICE_ACCOUNT_JSON`.
-
-## Project layout
-
-```
-src/
-  app.ts                 Express app: middleware + routers (exported for tests)
-  server.ts              starts the HTTP server
-  prisma.ts              Prisma client
-  middleware/            validateRequest, errors, logging, rate limit
-  utils/                 AppError (from Eatery)
-  <feature>/             one folder per feature: Router → Controller → Service, plus <feature>.schema.ts (Zod)
-prisma/
-  schema.prisma          every table
-  migrations/
-test/                    integration tests (one file per feature; just /health for now)
-```
-
-### Conventions
-
-- **Errors**: throw `NotFoundError`, `ForbiddenError`, etc. from `utils/AppError.ts`. Express 5 forwards async errors to `globalErrorHandler`, which returns `{ status, statusCode, message, errorCode, data? }`.
-- **Validation**: each route gets `validateRequest(schema)`; in the controller, `valid(req, schema)` returns the typed, parsed `{ body, query, params }`.
-- **Money** is always whole cents (`priceCents: 429` = $4.29).
-- **Date-only values** (due dates, lease end) are `"YYYY-MM-DD"` strings in the API and `DATE` in Postgres. "Today" means today in the house's `timezone`, not the server's.
-- **House routes** live under `/houses/:houseId/...` behind `requireHouseMember`, which answers 404 to non-members so house IDs can't be probed.
-
-## Deploying
-
-`.github/workflows/deploy-dev.yml` and `deploy-prod.yml` are Eatery's workflows renamed for Roomie. They are manual-only for now. Once AppDev sets up a server and a `cornellappdev/roomie-dev` Docker Hub repo, add the secrets (`DOCKER_USERNAME`, `DOCKER_PASSWORD`, `DEV_SERVER_HOST`, `SERVER_USERNAME`, `DEV_SERVER_KEY`) and uncomment the `push` trigger. `ci.yml` runs type checks and tests on every PR.
+We use ESLint and Prettier for linting and formatting. If you are using VS Code, both are available in the Extensions panel. Run ESLint with `npm run lint` and Prettier with `npm run format`.
