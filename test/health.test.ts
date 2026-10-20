@@ -15,10 +15,10 @@ describe('server', () => {
     });
   });
 
-  it('404s unknown routes', async () => {
+  it('asks for a token on every other route', async () => {
     const res = await request(app).get('/nope');
-    expect(res.status).toBe(404);
-    expect(res.body.errorCode).toBe('NOT_FOUND');
+    expect(res.status).toBe(401);
+    expect(res.body.errorCode).toBe('UNAUTHORIZED');
   });
 
   it('rejects malformed JSON', async () => {
