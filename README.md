@@ -8,7 +8,16 @@ Tech stack:
 2. PostgreSQL (Prisma 7)
 3. Firebase Auth (Google sign-in, Cornell accounts only)
 
-> `main` currently serves `GET /health` only. Login, profile, houses, chores and the shopping list live on the `mvp-features` branch.
+> So far: `GET /health`, and login and profile. Houses, chores and the shopping list live on the `mvp-features` branch.
+
+## Local testing without Firebase
+
+With `AUTH_DEV_BYPASS=true` in `.env` (never in production), send `Authorization: Bearer dev:<netid>` instead of a real Firebase token:
+
+```bash
+curl -X POST localhost:8000/auth/login -H 'Authorization: Bearer dev:lk452'
+curl localhost:8000/users/me -H 'Authorization: Bearer dev:lk452'
+```
 
 ## Installation
 
