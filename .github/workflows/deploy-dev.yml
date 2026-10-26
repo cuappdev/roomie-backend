@@ -4,7 +4,7 @@ name: Docker Build & Push and Deploy to dev for roomie-dev
 # Then uncomment push to deploy on every merge to `main`.
 on:
   # push:
-  #   branches: [main]
+  #   branches: [mvp-features]
   workflow_dispatch:
 
 jobs:
@@ -46,8 +46,7 @@ jobs:
           key: ${{ secrets.DEV_SERVER_KEY }}
           script: |
             export IMAGE_TAG=${{ steps.vars.outputs.sha_short }}
-            cd docker-compose
-            docker-compose down
-            sleep 20s
-            docker-compose up -d
-            yes | docker system prune -a
+            cd ~/roomie/docker-compose
+            docker compose pull
+            docker compose up -d
+            docker images cornellappdev/roomie-dev --format '{{.ID}}' | tail -n +4 | xargs -r docker rmi || true
