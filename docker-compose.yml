@@ -1,4 +1,4 @@
-# What runs on the server (same pattern as Eatery). The deploy workflow sets IMAGE_TAG.
+name: roomie-dev
 services:
   app:
     image: cornellappdev/roomie-${ROOMIE_ENV:-dev}:${IMAGE_TAG}
@@ -6,5 +6,5 @@ services:
     volumes:
       - ./firebase-service-account.json:/app/firebase-service-account.json:ro
     ports:
-      - '127.0.0.1:8000:8000'
+      - '127.0.0.1:8010:8000'
     restart: unless-stopped
