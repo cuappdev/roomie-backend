@@ -3,8 +3,8 @@ name: Docker Build & Push and Deploy to dev for roomie-dev
 # Manual only until AppDev gives Roomie a server + Docker Hub repo.
 # Then uncomment push to deploy on every merge to `main`.
 on:
-  # push:
-  #   branches: [mvp-features]
+  push:
+    branches: [mvp-features]
   workflow_dispatch:
 
 jobs:
