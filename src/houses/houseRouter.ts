@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import choreRouter from '../chores/choreRouter.js';
 
 import {
   requireHouseMember,
@@ -70,5 +71,5 @@ house.delete(
 );
 
 // Feature routers mounted under /houses/:houseId
-
+house.use('/', choreRouter);
 export default router;
