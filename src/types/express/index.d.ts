@@ -7,6 +7,8 @@ declare global {
     export interface Request {
       /** Set by requireAuth. */
       user?: AuthedUser;
+      /** Set by requireHouseMember. */
+      membership?: HouseMember;
       /** Set by validateRequest: the parsed (coerced, defaulted) request data. */
       validated?: { body: unknown; query: unknown; params: unknown };
     }
