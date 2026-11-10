@@ -9,6 +9,14 @@ const app = createApp();
 const server = app.listen(port, async () => {
   console.log(`Roomie API listening at http://localhost:${port}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  if (
+    process.env.AUTH_DEV_BYPASS === 'true' &&
+    process.env.NODE_ENV !== 'production'
+  ) {
+    console.warn(
+      'AUTH_DEV_BYPASS is on: "Bearer dev:<netid>" tokens are accepted.',
+    );
+  }
   try {
     await prisma.$connect();
     console.log('Database connected');

@@ -2,12 +2,42 @@
   "info": {
     "name": "Roomie API (local)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Roomie API. Start the server (`npm run dev`) and send Health check. More endpoints come with the features on the mvp-features branch."
+    "description": "Roomie API so far: health, login and profile. Start the server (`npm run dev`, with AUTH_DEV_BYPASS=true) and click **Run collection**, or send the requests top to bottom.\n\nAuth uses the dev login: `Bearer dev:{{netid}}`. Requests marked as the roommate use `dev:{{roommateNetid}}`. Each full run picks new NetIDs."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "dev:{{netid}}",
+        "type": "string"
+      }
+    ]
   },
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:8000"
+    },
+    {
+      "key": "netid",
+      "value": "lk452"
+    },
+    {
+      "key": "roommateNetid",
+      "value": "sc2291"
+    },
+    {
+      "key": "keepNetids",
+      "value": ""
+    },
+    {
+      "key": "myId",
+      "value": ""
+    },
+    {
+      "key": "roommateId",
+      "value": ""
     }
   ],
   "item": [
@@ -26,6 +56,21 @@
                   "pm.test(\"database connected\", () => pm.expect(pm.response.json().database).to.eql('connected'));"
                 ]
               }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// New NetIDs every run so the collection can be re-run against the same DB.",
+                  "// To explore the seeded demo house instead, set netid to lk452 and skip this folder.",
+                  "if (pm.info.iteration === 0 && !pm.collectionVariables.get('keepNetids')) {",
+                  "  const n = Math.floor(100000 + Math.random() * 899999);",
+                  "  pm.collectionVariables.set('netid', 'pm' + n);",
+                  "  pm.collectionVariables.set('roommateNetid', 'pr' + n);",
+                  "}"
+                ]
+              }
             }
           ],
           "request": {
@@ -38,6 +83,154 @@
               ],
               "path": [
                 "health"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1 \u00b7 Auth & me",
+      "item": [
+        {
+          "name": "Login (creates account first time)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('myId', body.user.id);",
+                  "pm.test(\"is a new user with no house\", () => { pm.expect(body.isNewUser).to.be.true; pm.expect(body.house).to.be.null; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Real apps send the Firebase ID token from Google sign-in. Locally, `Bearer dev:<netid>` works when AUTH_DEV_BYPASS=true. Returns 201 the first time, 200 after."
+          }
+        },
+        {
+          "name": "Get me",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update me (name, presence)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"name updated\", () => pm.expect(pm.response.json().user.name).to.eql('Postman Tester'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Tester\",\n  \"major\": \"Computer Science\",\n  \"presence\": \"HOME\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Roommate logs in",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('roommateId', pm.response.json().user.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "dev:{{roommateNetid}}",
+                  "type": "string"
+                }
               ]
             }
           }
