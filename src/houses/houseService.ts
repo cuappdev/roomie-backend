@@ -1,3 +1,4 @@
+import { removeFromRotations } from '../chores/choreService.js';
 import { Prisma } from '../generated/prisma/client.js';
 import type { HouseFeature, LivingType } from '../generated/prisma/client.js';
 import { prisma } from '../prisma.js';
@@ -6,7 +7,7 @@ import {
   ConflictError,
   NotFoundError,
 } from '../utils/AppError.js';
-import { parseDate } from '../utils/dates.js';
+import { parseDate, todayIn } from '../utils/dates.js';
 import { makeInviteCode, normalizeInviteCode } from '../utils/inviteCode.js';
 import { publicUserSelect } from '../utils/selects.js';
 
@@ -261,8 +262,15 @@ export const removeMember = async (
       throw new NotFoundError('Member not found.');
     }
 
-    // Feature cleanup on leave goes here (chore rotations, shopping claims).
-
+    const house = await tx.house.findUniqueOrThrow({
+      where: { id: houseId },
+    });
+    await removeFromRotations(
+      tx,
+      houseId,
+      targetUserId,
+      todayIn(house.timezone),
+    );
     await tx.houseMember.delete({ where: { userId: targetUserId } });
 
     const others = await tx.houseMember.findMany({
