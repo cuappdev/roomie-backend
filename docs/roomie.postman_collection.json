@@ -82,11 +82,19 @@
     {
       "key": "weekEnd",
       "value": ""
+    },
+    {
+      "key": "noteId",
+      "value": ""
+    },
+    {
+      "key": "roommateNoteId",
+      "value": ""
     }
   ],
   "item": [
     {
-      "name": "0 \u00b7 Start",
+      "name": "0 · Start",
       "item": [
         {
           "name": "Health check",
@@ -134,7 +142,7 @@
       ]
     },
     {
-      "name": "1 \u00b7 Auth & me",
+      "name": "1 · Auth & me",
       "item": [
         {
           "name": "Login (creates account first time)",
@@ -282,7 +290,7 @@
       ]
     },
     {
-      "name": "2 \u00b7 Houses",
+      "name": "2 · Houses",
       "item": [
         {
           "name": "Create house (+ invite roommate)",
@@ -631,7 +639,7 @@
       ]
     },
     {
-      "name": "3 \u00b7 Chores",
+      "name": "3 · Chores",
       "item": [
         {
           "name": "Create chore with rotation",
@@ -1089,7 +1097,7 @@
       ]
     },
     {
-      "name": "4 \u00b7 Shopping",
+      "name": "4 · Shopping",
       "item": [
         {
           "name": "Add item",
@@ -1498,7 +1506,381 @@
       ]
     },
     {
-      "name": "5 \u00b7 Leaving",
+      "name": "5 · Note Board",
+      "item": [
+        {
+          "name": "Post note",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('noteId', pm.response.json().note.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/notes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "notes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"plumber coming thurs!\",\n  \"dueOn\": \"{{today}}\",\n  \"notify\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Roommate posts pinned note",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('roommateNoteId', pm.response.json().note.id);",
+                  "pm.test('pinned', () => pm.expect(pm.response.json().note.pinned).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/notes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "notes"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"Rent is due on the 1st\",\n  \"pinned\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "dev:{{roommateNetid}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Board",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test('pinned first', () => pm.expect(pm.response.json().pinned[0].id).to.eql(pm.collectionVariables.get('roommateNoteId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/notes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "notes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get note",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/notes/{{noteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "notes",
+                "{{noteId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Edit note (author)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/notes/{{noteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "notes",
+                "{{noteId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"plumber coming fri!\",\n  \"dueOn\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Edit roommate's note (403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 403\", () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/notes/{{roommateNoteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "notes",
+                "{{roommateNoteId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"body\": \"nope\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Pin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/notes/{{noteId}}/pin",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "notes",
+                "{{noteId}}",
+                "pin"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Unpin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/notes/{{noteId}}/pin",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "notes",
+                "{{noteId}}",
+                "pin"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Owner deletes roommate's note",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/notes/{{roommateNoteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "notes",
+                "{{roommateNoteId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete note",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/notes/{{noteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "notes",
+                "{{noteId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 · Leaving",
       "item": [
         {
           "name": "Roommate leaves house",

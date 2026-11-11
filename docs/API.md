@@ -108,3 +108,23 @@ Rules: one house per person (`409` if you're already in one). Non-members get `4
 `Item`: `{ id, name, category, status, priceCents, boughtAt, billId, createdAt, updatedAt, addedBy: User, claimedBy: User|null, boughtBy: User|null }`
 
 `bought` lists bought items that are either from the last 14 days or not on a bill yet, newest first. `billable` is what the "Split $14.77 as a bill" button will cover: items you bought and priced that aren't on a bill yet. The button itself comes with the bills feature.
+
+## Note Board
+
+| Method | Path | Body / query | Returns |
+|---|---|---|---|
+| GET | `/houses/:houseId/notes` | – | `{ pinned: Note[], notes: Note[] }` |
+| POST | `/houses/:houseId/notes` | `{ body, dueOn?, pinned?, color?, notify? }` | `201 { note }` |
+| GET | `/houses/:houseId/notes/:noteId` | – | `{ note }` |
+| PATCH | `/houses/:houseId/notes/:noteId` | `{ body?, dueOn?, color? }` | `{ note }` (author only, else `403`) |
+| DELETE | `/houses/:houseId/notes/:noteId` | – | `204` (author or house owner, else `403`) |
+| POST / DELETE | `/houses/:houseId/notes/:noteId/pin` | – | `{ note }` (pin / unpin, any member) |
+
+`Note`: `{ id, body, color, dueOn: "YYYY-MM-DD"|null, pinned, pinnedAt, createdAt, updatedAt, author: User }`. `color` is `YELLOW`, `ORANGE`, `BLUE`, `GREEN`, `PINK` or `PURPLE`.
+
+- `body` is 1–500 characters. `dueOn` is optional, can't be in the past (in the house's time zone), and can be cleared with `null` on PATCH.
+- Leave out `color` and the server picks the one used least by the house's recent notes, so the board cycles through all six. The Leave a Note screen has no color picker, so the app normally leaves it out.
+- `pinned: true` is the "Pin Note" switch. `notify` is the "Notify Others" switch: it's accepted but does nothing until push notifications exist.
+- `pinned` lists pinned notes, most recently pinned first. `notes` lists the rest, newest first. Pinning an already pinned note moves it to the top.
+- Notes stay on the board for 14 days after posting, or until their due date if that's later. Pinned notes stay until someone unpins them. A note that's off the board returns `404`.
+- A person's notes stay, with their name, after they leave the house.
