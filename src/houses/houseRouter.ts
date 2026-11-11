@@ -6,6 +6,7 @@ import {
   requireHouseOwner,
 } from '../middleware/authentication.js';
 import { validateRequest } from '../middleware/validateRequest.js';
+import noteRouter from '../notes/noteRouter.js';
 import shoppingRouter from '../shopping/shoppingRouter.js';
 import {
   acceptInvite,
@@ -74,5 +75,6 @@ house.delete(
 // Feature routers mounted under /houses/:houseId
 house.use('/', choreRouter);
 house.use('/shopping-items', shoppingRouter);
+house.use('/notes', noteRouter);
 
 export default router;

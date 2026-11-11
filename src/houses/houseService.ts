@@ -243,7 +243,7 @@ export const respondToInvite = async (
  *  - their future, unfinished chore turns are dropped and they leave every rotation
  *  - their "I'll get it" claims on the shopping list are released
  *  - ownership passes to the longest-standing member; the last one out deletes the house
- * Done chores and bought items stay in the history.
+ * Done chores, bought items and their notes stay.
  */
 export const removeMember = async (
   houseId: number,
