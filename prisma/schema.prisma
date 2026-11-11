@@ -39,6 +39,7 @@ model User {
   shoppingAdded   ShoppingItem[]  @relation("ShoppingAddedBy")
   shoppingClaimed ShoppingItem[]  @relation("ShoppingClaimedBy")
   shoppingBought  ShoppingItem[]  @relation("ShoppingBoughtBy")
+  notes           Note[]          @relation("NoteAuthor")
 }
 
 // ───────────────────────────── Houses ─────────────────────────────
@@ -89,6 +90,7 @@ model House {
   invites       HouseInvite[]
   chores        Chore[]
   shoppingItems ShoppingItem[]
+  notes         Note[]
 }
 
 /// One house per user for the MVP (userId is unique). Drop the unique to allow several.
@@ -229,4 +231,37 @@ model ShoppingItem {
   boughtBy  User? @relation("ShoppingBoughtBy", fields: [boughtById], references: [id], onDelete: SetNull)
 
   @@index([houseId, status])
+}
+
+// ───────────────────────────── Note Board ─────────────────────────────
+
+/// The post-it colors in the Note Board design.
+enum NoteColor {
+  YELLOW
+  ORANGE
+  BLUE
+  GREEN
+  PINK
+  PURPLE
+}
+
+/// A post-it on the Note Board. Shown for 14 days after posting (or until its due date,
+/// if that's later). Pinned notes stay until someone unpins them.
+model Note {
+  id        Int       @id @default(autoincrement())
+  houseId   Int
+  authorId  Int
+  body      String
+  color     NoteColor @default(YELLOW)
+  /// "Due Date · Optional" on the Leave a Note screen.
+  dueOn     DateTime? @db.Date
+  /// Set while the note is pinned. Any member can pin or unpin.
+  pinnedAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  house  House @relation(fields: [houseId], references: [id], onDelete: Cascade)
+  author User  @relation("NoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([houseId, createdAt])
 }

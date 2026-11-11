@@ -116,6 +116,26 @@ const main = async () => {
     category: 'HOUSEHOLD',
   });
 
+  const note = (
+    body: string,
+    authorId: number,
+    color: 'YELLOW' | 'ORANGE' | 'BLUE' | 'GREEN' | 'PINK' | 'PURPLE',
+    extra: Record<string, unknown> = {},
+  ) =>
+    prisma.note.create({
+      data: { houseId: house.id, body, authorId, color, ...extra },
+    });
+  await note('Rent is due on the 1st', melissa.id, 'YELLOW', {
+    pinnedAt: new Date(),
+  });
+  await note('plumber coming thurs!', leah.id, 'ORANGE', {
+    dueOn: new Date(today.getTime() + 2 * 86_400_000),
+  });
+  await note('good luck with prelims ♡', leah.id, 'BLUE');
+  await note('Thanks for cleaning the kitchen!', selena.id, 'GREEN');
+  await note('Love living with you all!', melissa.id, 'PINK');
+  await note("Movie night Friday? I'll make popcorn", selena.id, 'PURPLE');
+
   console.log(
     `Seeded "${house.name}" (id ${house.id}, code ${house.inviteCode}).`,
   );
