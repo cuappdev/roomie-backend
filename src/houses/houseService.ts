@@ -240,9 +240,10 @@ export const respondToInvite = async (
 
 /**
  * Leaving (or being removed):
+ *  - their future, unfinished chore turns are dropped and they leave every rotation
+ *  - their "I'll get it" claims on the shopping list are released
  *  - ownership passes to the longest-standing member; the last one out deletes the house
- *  - features hook their own cleanup in below (e.g. chores drop the person from
- *    rotations, shopping releases their "I'll get it" claims)
+ * Done chores and bought items stay in the history.
  */
 export const removeMember = async (
   houseId: number,
@@ -271,6 +272,11 @@ export const removeMember = async (
       targetUserId,
       todayIn(house.timezone),
     );
+    await tx.shoppingItem.updateMany({
+      where: { houseId, claimedById: targetUserId, status: 'NEEDED' },
+      data: { claimedById: null },
+    });
+
     await tx.houseMember.delete({ where: { userId: targetUserId } });
 
     const others = await tx.houseMember.findMany({

@@ -47,7 +47,6 @@ export const createApp = () => {
   router.use('/users', userRouter);
   router.use('/houses', houseRouter);
   router.use('/invites', inviteRouter);
-  // Feature routers (chores, shopping) get mounted here.
 
   app.use(router);
 

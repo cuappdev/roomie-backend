@@ -54,6 +54,34 @@
     {
       "key": "extraInviteId",
       "value": ""
+    },
+    {
+      "key": "choreId",
+      "value": ""
+    },
+    {
+      "key": "assignmentId",
+      "value": ""
+    },
+    {
+      "key": "otherAssignmentId",
+      "value": ""
+    },
+    {
+      "key": "itemId",
+      "value": ""
+    },
+    {
+      "key": "roommateItemId",
+      "value": ""
+    },
+    {
+      "key": "today",
+      "value": ""
+    },
+    {
+      "key": "weekEnd",
+      "value": ""
     }
   ],
   "item": [
@@ -603,7 +631,874 @@
       ]
     },
     {
-      "name": "3 \u00b7 Leaving",
+      "name": "3 \u00b7 Chores",
+      "item": [
+        {
+          "name": "Create chore with rotation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "",
+                  "const { chore } = pm.response.json();",
+                  "pm.collectionVariables.set('choreId', chore.id);",
+                  "pm.test(\"coming up has 3 turns\", () => pm.expect(chore.comingUp).to.have.lengthOf(3));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Today and a week from today, in local time (YYYY-MM-DD)",
+                  "const fmt = (d) => d.toLocaleDateString('en-CA');",
+                  "const today = new Date();",
+                  "pm.collectionVariables.set('today', fmt(today));",
+                  "pm.collectionVariables.set('weekEnd', fmt(new Date(today.getTime() + 6 * 86400000)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/chores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "chores"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Take out trash & recycling\",\n  \"frequency\": \"EVERY_OTHER_DAY\",\n  \"startsOn\": \"{{today}}\",\n  \"rotation\": [\n    {{myId}},\n    {{roommateId}}\n  ],\n  \"allowSwaps\": true,\n  \"reminderHour\": 18\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List chores",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/chores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "chores"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get chore",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/chores/{{choreId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "chores",
+                "{{choreId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "This week's turns (everyone)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "const a = pm.response.json().assignments;",
+                  "pm.test(\"has turns\", () => pm.expect(a.length).to.be.above(1));",
+                  "pm.collectionVariables.set('assignmentId', a[0].id);",
+                  "pm.collectionVariables.set('otherAssignmentId', a[1].id);"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Today and a week from today, in local time (YYYY-MM-DD)",
+                  "const fmt = (d) => d.toLocaleDateString('en-CA');",
+                  "const today = new Date();",
+                  "pm.collectionVariables.set('today', fmt(today));",
+                  "pm.collectionVariables.set('weekEnd', fmt(new Date(today.getTime() + 6 * 86400000)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/chore-assignments?from={{today}}&to={{weekEnd}}&includeOverdue=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "chore-assignments"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{today}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{weekEnd}}"
+                },
+                {
+                  "key": "includeOverdue",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "My chores today (Home)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Today and a week from today, in local time (YYYY-MM-DD)",
+                  "const fmt = (d) => d.toLocaleDateString('en-CA');",
+                  "const today = new Date();",
+                  "pm.collectionVariables.set('today', fmt(today));",
+                  "pm.collectionVariables.set('weekEnd', fmt(new Date(today.getTime() + 6 * 86400000)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/chore-assignments?from={{today}}&to={{today}}&assignee=me&includeOverdue=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "chore-assignments"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{today}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{today}}"
+                },
+                {
+                  "key": "assignee",
+                  "value": "me"
+                },
+                {
+                  "key": "includeOverdue",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Swap two turns",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/chore-assignments/{{assignmentId}}/swap",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "chore-assignments",
+                "{{assignmentId}}",
+                "swap"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"withAssignmentId\": {{otherAssignmentId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Mark turn done",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"status DONE\", () => pm.expect(pm.response.json().assignment.status).to.eql('DONE'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/chore-assignments/{{assignmentId}}/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "chore-assignments",
+                "{{assignmentId}}",
+                "complete"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Undo done",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/chore-assignments/{{assignmentId}}/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "chore-assignments",
+                "{{assignmentId}}",
+                "complete"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Done this month",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/chores/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "chores",
+                "stats"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reorder rotation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"roommate goes next\", () => pm.expect(pm.response.json().chore.comingUp[0].assignee.id).to.eql(Number(pm.collectionVariables.get('roommateId'))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/chores/{{choreId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "chores",
+                "{{choreId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rotation\": [\n    {{roommateId}},\n    {{myId}}\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete chore",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/chores/{{choreId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "chores",
+                "{{choreId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 \u00b7 Shopping",
+      "item": [
+        {
+          "name": "Add item",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('itemId', pm.response.json().item.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/shopping-items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "shopping-items"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Eggs (dozen)\",\n  \"category\": \"GROCERIES\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Roommate adds item",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('roommateItemId', pm.response.json().item.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/shopping-items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "shopping-items"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dish soap\",\n  \"category\": \"HOUSEHOLD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "dev:{{roommateNetid}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/shopping-items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "shopping-items"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List household only",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/shopping-items?category=HOUSEHOLD",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "shopping-items"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "HOUSEHOLD"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "I'll get it (claim)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/shopping-items/{{roommateItemId}}/claim",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "shopping-items",
+                "{{roommateItemId}}",
+                "claim"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Unclaim",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/shopping-items/{{roommateItemId}}/claim",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "shopping-items",
+                "{{roommateItemId}}",
+                "claim"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark bought ($4.29)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/shopping-items/{{itemId}}/buy",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "shopping-items",
+                "{{itemId}}",
+                "buy"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"priceCents\": 429\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "List shows billable total",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"billable is $4.29\", () => pm.expect(pm.response.json().billable.totalCents).to.eql(429));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/shopping-items",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "shopping-items"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Edit item (rename / price)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/shopping-items/{{itemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "shopping-items",
+                "{{itemId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"priceCents\": 499\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Undo bought",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/shopping-items/{{itemId}}/buy",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "shopping-items",
+                "{{itemId}}",
+                "buy"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete item",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/houses/{{houseId}}/shopping-items/{{itemId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "houses",
+                "{{houseId}}",
+                "shopping-items",
+                "{{itemId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 \u00b7 Leaving",
       "item": [
         {
           "name": "Roommate leaves house",
