@@ -1,11 +1,12 @@
 import { Router } from 'express';
-import choreRouter from '../chores/choreRouter.js';
 
+import choreRouter from '../chores/choreRouter.js';
 import {
   requireHouseMember,
   requireHouseOwner,
 } from '../middleware/authentication.js';
 import { validateRequest } from '../middleware/validateRequest.js';
+import shoppingRouter from '../shopping/shoppingRouter.js';
 import {
   acceptInvite,
   createHouse,
@@ -72,4 +73,6 @@ house.delete(
 
 // Feature routers mounted under /houses/:houseId
 house.use('/', choreRouter);
+house.use('/shopping-items', shoppingRouter);
+
 export default router;
